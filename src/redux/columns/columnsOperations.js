@@ -2,78 +2,85 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import axiosInstance from 'api/axiosInstance';
 import ENDPOINTS from 'api/endpoints';
 
-export const addColumn = createAsyncThunk(
-  'columns/addColumn',
-  async (newColumn, thunkAPI) => {
+// GET: coloanele unui board
+export const getColumnsByBoard = createAsyncThunk(
+  'columns/getByBoard',
+  async (boardId, thunkAPI) => {
     try {
-      const response = await axiosInstance.post(
-        ENDPOINTS.columns.allColumns,
-        newColumn
+      const { data } = await axiosInstance.get(
+        ENDPOINTS.columns.columnsByBoard(boardId)
       );
-      return response.data;
+      const items = data?.data || data?.columns || data || [];
+      return Array.isArray(items) ? items.filter(Boolean) : [];
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
-export const deleteColumn = createAsyncThunk(
-  'columns/deleteColumn',
-  async (columnId, thunkAPI) => {
+// POST: creează coloană (title + board)
+export const addColumn = createAsyncThunk(
+  'columns/add',
+  async ({ boardId, title }, thunkAPI) => {
     try {
-      const response = await axiosInstance.delete(ENDPOINTS.columns.oneColumn(columnId));
-      return { _id: columnId, ...response.data };
+      const { data } = await axiosInstance.post(
+        ENDPOINTS.columns.allColumns,
+        { title, board: boardId }
+      );
+      const col = data?.data || data?.column || data;
+      if (!col || !col._id) throw new Error('Column missing _id in response');
+      return col;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
+// PUT: editează coloană
 export const editColumn = createAsyncThunk(
-  'columns/editColumn',
-  async ({ editedColumn, id }, thunkAPI) => {
+  'columns/edit',
+  async ({ id, editedColumn }, thunkAPI) => {
     try {
-      const response = await axiosInstance.patch(
+      const { data } = await axiosInstance.put(
         ENDPOINTS.columns.oneColumn(id),
         editedColumn
       );
-      return response.data;
+      const col = data?.data || data?.column || data;
+      if (!col || !col._id) throw new Error('Column missing _id in response');
+      return col;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
-export const getColumnsByBoard = createAsyncThunk(
-  'columns/getColumnsByBoard',
-  async (boardId, thunkAPI) => {
+// DELETE: șterge coloană → întoarcem doar id-ul
+export const deleteColumn = createAsyncThunk(
+  'columns/delete',
+  async (columnId, thunkAPI) => {
     try {
-      const response = await axiosInstance.get(ENDPOINTS.columns.columnsByBoard(boardId));
-      return response.data;
+      await axiosInstance.delete(ENDPOINTS.columns.oneColumn(columnId));
+      return columnId;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
+// PATCH: reordonare coloane (server: PATCH /api/columns/reorder)
 export const reorderColumns = createAsyncThunk(
-  'columns/reorderColumns',
+  'columns/reorder',
   async ({ boardId, columns }, thunkAPI) => {
     try {
-      // Map the columns to the expected format for the API
-      const reorderData = columns.map((column, index) => ({
-        _id: column._id,
-        order: index
-      }));
-
-      const response = await axiosInstance.patch(
-        ENDPOINTS.columns.reorderColumns(boardId),
-        { columns: reorderData }
-      );
-
-      return response.data;
+      const columnOrders = columns.map((c, i) => ({ id: c._id, order: i }));
+      await axiosInstance.patch(ENDPOINTS.columns.reorderColumns, {
+        boardId,
+        columnOrders,
+      });
+      // sortăm local în slice folosind columnOrders
+      return columnOrders;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );

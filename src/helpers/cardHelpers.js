@@ -1,64 +1,69 @@
 /**
- * Helper functions for card data transformation and validation
+ * Priority mapping
  */
+export const mapPriorityToBackend = priority => {
+  const p = String(priority || '').toLowerCase();
+  if (p === 'high') return 'high';
+  if (p === 'medium') return 'medium';
+  if (p === 'low') return 'low';
+  if (p === 'without priority' || p === 'none' || p === 'without') return 'low';
+  return 'low';
+};
 
-/**
- * Maps frontend priority values to backend expected format
- * @param {string} priority - Frontend priority value
- * @returns {string} - Backend compatible priority value
- */
-export const mapPriorityToBackend = (priority) => {
-  switch(priority) {
-    case 'without priority': return 'low';
-    case 'low': return 'low';
-    case 'medium': return 'medium';
-    case 'high': return 'high';
-    default: return 'low';
-  }
+export const mapPriorityToFrontend = priority => {
+  const p = String(priority || '').toLowerCase();
+  if (['high', 'medium', 'low'].includes(p)) return p;
+  if (['none', 'without', 'without priority'].includes(p))
+    return 'without priority';
+  return 'without priority';
 };
 
 /**
- * Maps backend priority values to frontend expected format
- * @param {string} priority - Backend priority value
- * @returns {string} - Frontend compatible priority value
+ * Normalize un card venit din API.
+ * Asigură existența ambelor chei: deadline (UI) și dueDate (API).
  */
-export const mapPriorityToFrontend = (priority) => {
-  if (!priority) return 'without priority';
-  return priority;
-};
+export const normalizeCardFromApi = (apiCard = {}) => {
+  const due =
+    apiCard?.dueDate ?? apiCard?.deadline ?? apiCard?.due_date ?? null;
 
-/**
- * Formats card data for API requests
- * @param {Object} cardInfo - Card data from frontend
- * @returns {Object} - Formatted card data for backend
- */
-export const formatCardForApi = (cardInfo) => {
   return {
-    title: cardInfo.title,
-    description: cardInfo.description,
-    priority: mapPriorityToBackend(cardInfo.priority),
-    dueDate: cardInfo.deadline,
-    column: cardInfo.column,
+    ...apiCard,
+    dueDate: due,
+    deadline: due,
+    priority: mapPriorityToFrontend(apiCard?.priority),
   };
 };
 
+export const normalizeCardsArray = (arr = []) => arr.map(normalizeCardFromApi);
+
+/** Utils pentru dată */
+export const toDate = val => {
+  if (!val) return null;
+  const d = val instanceof Date ? val : new Date(val);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+export const formatDDMMYYYY = val => {
+  const d = toDate(val);
+  if (!d) return null;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 /**
- * Validates card data before API submission
- * @param {Object} cardInfo - Card data to validate
- * @returns {Object} - { isValid: boolean, error: string|null }
+ * Validări simple pentru formularul de card
  */
-export const validateCardData = (cardInfo) => {
+export const validateCardData = cardInfo => {
   if (!cardInfo.title || !cardInfo.title.trim()) {
     return { isValid: false, error: 'Title is required' };
   }
-
   if (!cardInfo.description || !cardInfo.description.trim()) {
     return { isValid: false, error: 'Description is required' };
   }
-
   if (!cardInfo.column) {
     return { isValid: false, error: 'Column is required' };
   }
-
   return { isValid: true, error: null };
 };

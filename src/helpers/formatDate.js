@@ -1,4 +1,7 @@
-const formatDate = date => {
+const formatDate = input => {
+  const date = input instanceof Date ? input : new Date(input);
+  if (!date || Number.isNaN(date.getTime())) return '—';
+
   let day = date.getDate();
   let month = date.getMonth() + 1;
   const year = date.getFullYear();

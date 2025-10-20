@@ -4,7 +4,7 @@ import {
   deleteColumn,
   editColumn,
   getColumnsByBoard,
-  reorderColumns
+  reorderColumns,
 } from './columnsOperations';
 
 const initialState = {
@@ -17,86 +17,91 @@ const columnsSlice = createSlice({
   name: 'columns',
   initialState,
   reducers: {
-    setColumns: (state, action) => {
-      state.items = action.payload;
+    setColumns: (state, { payload }) => {
+      state.items = payload || [];
     },
-    clearColumns: (state) => {
+    clearColumns: state => {
       state.items = [];
     },
   },
   extraReducers: builder => {
-    // Get columns by board
+    // GET
     builder
-      .addCase(getColumnsByBoard.pending, state => {
-        state.isLoading = true;
-        state.error = null;
+      .addCase(getColumnsByBoard.pending, s => {
+        s.isLoading = true;
+        s.error = null;
       })
-      .addCase(getColumnsByBoard.fulfilled, (state, action) => {
-        state.items = action.payload;
-        state.isLoading = false;
+      .addCase(getColumnsByBoard.fulfilled, (s, { payload }) => {
+        s.items = Array.isArray(payload) ? payload : [];
+        s.isLoading = false;
       })
-      .addCase(getColumnsByBoard.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
+      .addCase(getColumnsByBoard.rejected, (s, a) => {
+        s.isLoading = false;
+        s.error = a.payload;
+      });
 
-    // Add column
-      .addCase(addColumn.pending, state => {
-        state.isLoading = true;
-        state.error = null;
+    // ADD
+    builder
+      .addCase(addColumn.pending, s => {
+        s.isLoading = true;
+        s.error = null;
       })
-      .addCase(addColumn.fulfilled, (state, action) => {
-        state.items.push(action.payload);
-        state.isLoading = false;
+      .addCase(addColumn.fulfilled, (s, { payload }) => {
+        s.items.push(payload);
+        s.isLoading = false;
       })
-      .addCase(addColumn.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
+      .addCase(addColumn.rejected, (s, a) => {
+        s.isLoading = false;
+        s.error = a.payload;
+      });
 
-    // Edit column
-      .addCase(editColumn.pending, state => {
-        state.isLoading = true;
-        state.error = null;
+    // EDIT
+    builder
+      .addCase(editColumn.pending, s => {
+        s.isLoading = true;
+        s.error = null;
       })
-      .addCase(editColumn.fulfilled, (state, action) => {
-        const index = state.items.findIndex(column => column._id === action.payload._id);
-        if (index !== -1) {
-          state.items[index] = action.payload;
-        }
-        state.isLoading = false;
+      .addCase(editColumn.fulfilled, (s, { payload }) => {
+        const i = s.items.findIndex(c => c._id === payload._id);
+        if (i !== -1) s.items[i] = payload;
+        s.isLoading = false;
       })
-      .addCase(editColumn.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
+      .addCase(editColumn.rejected, (s, a) => {
+        s.isLoading = false;
+        s.error = a.payload;
+      });
 
-    // Delete column
-      .addCase(deleteColumn.pending, state => {
-        state.isLoading = true;
-        state.error = null;
+    // DELETE
+    builder
+      .addCase(deleteColumn.pending, s => {
+        s.isLoading = true;
+        s.error = null;
       })
-      .addCase(deleteColumn.fulfilled, (state, action) => {
-        state.items = state.items.filter(column => column._id !== action.payload._id);
-        state.isLoading = false;
+      .addCase(deleteColumn.fulfilled, (s, { payload: id }) => {
+        s.items = s.items.filter(c => c._id !== id);
+        s.isLoading = false;
       })
-      .addCase(deleteColumn.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
+      .addCase(deleteColumn.rejected, (s, a) => {
+        s.isLoading = false;
+        s.error = a.payload;
+      });
 
-    // Reorder columns
-      .addCase(reorderColumns.pending, state => {
-        state.isLoading = true;
-        state.error = null;
+    // REORDER → sortăm local după payload
+    builder
+      .addCase(reorderColumns.pending, s => {
+        s.isLoading = true;
+        s.error = null;
       })
-      .addCase(reorderColumns.fulfilled, (state, action) => {
-        state.items = action.payload;
-        state.isLoading = false;
+      .addCase(reorderColumns.fulfilled, (s, { payload: orders }) => {
+        const map = new Map(orders.map(o => [o.id, o.order]));
+        s.items = [...s.items].sort(
+          (a, b) => (map.get(a._id) ?? 0) - (map.get(b._id) ?? 0)
+        );
+        s.isLoading = false;
       })
-      .addCase(reorderColumns.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
+      .addCase(reorderColumns.rejected, (s, a) => {
+        s.isLoading = false;
+        s.error = a.payload;
       });
   },
 });

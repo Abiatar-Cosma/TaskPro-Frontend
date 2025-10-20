@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -12,6 +11,7 @@ import {
   validateInputMaxLength,
   isTheDateLessThanNow,
 } from 'helpers';
+import { validateCardData } from 'helpers/cardHelpers';
 import ModalWrapper from 'components/Modals/ModalWrapper';
 import Calendar from 'components/Calendar';
 import Plus from 'components/Icons/Plus';
@@ -32,7 +32,11 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
   );
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDay] = useState(
-    variant === 'add' ? new Date() : activeCard.deadline
+    variant === 'add'
+      ? new Date()
+      : (activeCard?.deadline || activeCard?.dueDate
+          ? new Date(activeCard.deadline || activeCard.dueDate)
+          : new Date())
   );
   const [errorMsgShown, setErrorMsgShown] = useState(false);
   const [errorClassName, setErrorClassName] = useState('');
@@ -41,7 +45,7 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
   const titleRef = useRef(null);
 
   useEffect(() => {
-    titleRef.current.focus();
+    titleRef.current?.focus();
   }, []);
 
   const { boardId } = useParams();
@@ -52,61 +56,50 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
     e.preventDefault();
     const { title, description } = e.target.elements;
 
-    if (!title.value.trim()) {
-      return toast(t('cards.modals.toast.titleRequired'), TOASTER_CONFIG);
-    }
-
-    if (!description.value.trim()) {
-      return toast(t('cards.modals.toast.descriptionRequired'), TOASTER_CONFIG);
-    }
-
-    const dateForServer = makeValidDate(selectedDate);
-
-    if (isTheDateLessThanNow(dateForServer)) {
-      return toast(t('cards.modals.toast.invalidDate'), TOASTER_CONFIG);
-    }
-
-    // Create card info with proper formatting for API
-    const cardInfo = {
+    const rawCard = {
       title: title.value.trim(),
       description: description.value.trim(),
       priority: cardPriority,
-      deadline: dateForServer,
-      board: boardId,
+      // UI păstrează "deadline"; thunk-urile convertesc la dueDate înaintea API-ului
+      deadline: makeValidDate(selectedDate),
       column: columnId,
+      board: boardId,
     };
 
-    console.log('Prepared card data:', cardInfo);
+    // validări de bază
+    const { isValid, error } = validateCardData(rawCard);
+    if (!isValid) {
+      toast.error(error, TOASTER_CONFIG);
+      return;
+    }
+
+    if (isTheDateLessThanNow(rawCard.deadline)) {
+      toast.error(t('cards.modals.toast.invalidDate'), TOASTER_CONFIG);
+      return;
+    }
 
     try {
       if (variant === 'add') {
-        await dispatch(addCard(cardInfo)).unwrap();
-        toast(t('cards.modals.toast.add.success'), TOASTER_CONFIG);
+        await dispatch(addCard(rawCard)).unwrap();
+        toast.success(t('cards.modals.toast.add.success'), TOASTER_CONFIG);
       } else {
-        await dispatch(editCard({ cardId: activeCard._id, editedCard: cardInfo })).unwrap();
-        toast(t('cards.modals.toast.edit.success'), TOASTER_CONFIG);
+        await dispatch(
+          editCard({ cardId: activeCard._id, editedCard: rawCard })
+        ).unwrap();
+        toast.success(t('cards.modals.toast.edit.success'), TOASTER_CONFIG);
       }
       closeCardModal();
-    } catch (error) {
-      console.error('Card operation failed:', error);
-      const errorMessage = typeof error === 'string'
-        ? error
-        : error?.message || t('cards.modals.toast.error');
-      toast(errorMessage, TOASTER_CONFIG);
+    } catch (err) {
+      const msg =
+        typeof err === 'string'
+          ? err
+          : err?.message || t('cards.modals.toast.error');
+      toast.error(msg, TOASTER_CONFIG);
     }
   };
 
-  const openDatePicker = () => {
-    if (datePickerRef.current) {
-      datePickerRef.current.setOpen(true);
-    }
-  };
-
-  const closeDatePicker = () => {
-    if (datePickerRef.current) {
-      datePickerRef.current.setOpen(false);
-    }
-  };
+  const openDatePicker = () => datePickerRef.current?.setOpen(true);
+  const closeDatePicker = () => datePickerRef.current?.setOpen(false);
 
   return (
     <ModalWrapper width={350} onClose={closeCardModal}>
@@ -128,39 +121,37 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
               defaultValue={variant === 'add' ? '' : activeCard.title}
               autoComplete="off"
               maxLength={25}
-              onChange={e =>
-                validateInputMaxLength(e, setErrorMsgShown, setErrorClassName)
+              onChange={(ev) =>
+                validateInputMaxLength(ev, setErrorMsgShown, setErrorClassName)
               }
             />
             {errorMsgShown && <p>{t('toast.maxTitle')}</p>}
           </ErrorLabel>
+
           <textarea
             name="description"
             placeholder={t('cards.modals.description')}
             defaultValue={variant === 'add' ? '' : activeCard.description}
             autoComplete="off"
-          ></textarea>
+          />
 
           <label>
             {t('cards.modals.label')}
-
             <LabelRadioList>
-              {LABEL_ARR.map(({ id, priority, color }) => {
-                return (
-                  <li key={id}>
-                    <RadioBtn
-                      $color={color}
-                      id="priority"
-                      type="radio"
-                      name="priority"
-                      value={priority}
-                      checked={priority === cardPriority}
-                      onChange={e => setCardPriority(e.target.value)}
-                    />
-                    <LabelRadioLabel htmlFor="label" $color={color} />
-                  </li>
-                );
-              })}
+              {LABEL_ARR.map(({ id, priority, color }) => (
+                <li key={id}>
+                  <RadioBtn
+                    $color={color}
+                    id={`priority-${id}`}
+                    type="radio"
+                    name="priority"
+                    value={priority}
+                    checked={priority === cardPriority}
+                    onChange={(e) => setCardPriority(e.target.value)}
+                  />
+                  <LabelRadioLabel htmlFor={`priority-${id}`} $color={color} />
+                </li>
+              ))}
             </LabelRadioList>
           </label>
 

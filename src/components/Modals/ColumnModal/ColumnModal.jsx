@@ -25,32 +25,34 @@ const ColumnModal = ({ variant, closeModal, columnId, columnName }) => {
   const { boardId } = useParams();
   const dispatch = useDispatch();
   const { t } = useTranslation();
-
   const titleRef = useRef(null);
 
   useEffect(() => {
-    titleRef.current.focus();
+    titleRef.current?.focus();
   }, []);
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
     const { value: title } = e.target.elements.title;
 
-    if (title.trim() === '') {
+    if (!title.trim()) {
       toast(t('columns.modals.toast.error'), TOASTER_CONFIG);
       return;
     }
 
-    const newColumn = {
-      board: boardId,
-      title,
-    };
-
-    variant === 'add'
-      ? dispatch(addColumn(newColumn))
-      : dispatch(editColumn({ editedColumn: newColumn, id: columnId }));
-
-    return closeModal();
+    try {
+      if (variant === 'add') {
+        // așteptăm _id din răspuns
+        await dispatch(addColumn({ boardId, title })).unwrap();
+      } else {
+        await dispatch(
+          editColumn({ id: columnId, editedColumn: { title } })
+        ).unwrap();
+      }
+      closeModal();
+    } catch (err) {
+      toast.error(err?.message || 'Action failed', TOASTER_CONFIG);
+    }
   };
 
   return (

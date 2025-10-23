@@ -1,6 +1,10 @@
+import makeValidDate from './makeValidDate';
+
+// Doar spune dacă data e astăzi (boolean). NU o folosi pentru afișarea textului datei!
 const determineDeadline = date => {
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return false;
+  const d = makeValidDate(date);
+  if (!d) return false;
+
   const today = new Date();
   d.setHours(0, 0, 0, 0);
   today.setHours(0, 0, 0, 0);

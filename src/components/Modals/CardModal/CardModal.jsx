@@ -27,17 +27,19 @@ import {
 } from './CardModal.styled';
 
 const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
+  const initialSelectedDate = (() => {
+    if (variant === 'add') return new Date();
+    const raw = activeCard?.deadline ?? activeCard?.dueDate ?? null;
+    return makeValidDate(raw) || new Date();
+  })();
+
   const [cardPriority, setCardPriority] = useState(
-    variant === 'add' ? 'without priority' : activeCard.priority
+    variant === 'add'
+      ? 'without priority'
+      : activeCard?.priority ?? 'without priority'
   );
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [selectedDate, setSelectedDay] = useState(
-    variant === 'add'
-      ? new Date()
-      : (activeCard?.deadline || activeCard?.dueDate
-          ? new Date(activeCard.deadline || activeCard.dueDate)
-          : new Date())
-  );
+  const [selectedDate, setSelectedDay] = useState(initialSelectedDate);
   const [errorMsgShown, setErrorMsgShown] = useState(false);
   const [errorClassName, setErrorClassName] = useState('');
 
@@ -52,7 +54,7 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
 
-  const handleFormSubmit = async (e) => {
+  const handleFormSubmit = async e => {
     e.preventDefault();
     const { title, description } = e.target.elements;
 
@@ -60,13 +62,12 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
       title: title.value.trim(),
       description: description.value.trim(),
       priority: cardPriority,
-      // UI păstrează "deadline"; thunk-urile convertesc la dueDate înaintea API-ului
-      deadline: makeValidDate(selectedDate),
+      // UI reține "deadline"; în thunks se mapează la dueDate pentru API
+      deadline: makeValidDate(selectedDate)?.toISOString() || null, // ✅ virgulă adăugată
       column: columnId,
       board: boardId,
     };
 
-    // validări de bază
     const { isValid, error } = validateCardData(rawCard);
     if (!isValid) {
       toast.error(error, TOASTER_CONFIG);
@@ -118,10 +119,10 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
               type="text"
               name="title"
               placeholder={t('cards.modals.title')}
-              defaultValue={variant === 'add' ? '' : activeCard.title}
+              defaultValue={variant === 'add' ? '' : activeCard?.title ?? ''}
               autoComplete="off"
               maxLength={25}
-              onChange={(ev) =>
+              onChange={ev =>
                 validateInputMaxLength(ev, setErrorMsgShown, setErrorClassName)
               }
             />
@@ -131,7 +132,9 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
           <textarea
             name="description"
             placeholder={t('cards.modals.description')}
-            defaultValue={variant === 'add' ? '' : activeCard.description}
+            defaultValue={
+              variant === 'add' ? '' : activeCard?.description ?? ''
+            }
             autoComplete="off"
           />
 
@@ -147,7 +150,7 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
                     name="priority"
                     value={priority}
                     checked={priority === cardPriority}
-                    onChange={(e) => setCardPriority(e.target.value)}
+                    onChange={e => setCardPriority(e.target.value)}
                   />
                   <LabelRadioLabel htmlFor={`priority-${id}`} $color={color} />
                 </li>

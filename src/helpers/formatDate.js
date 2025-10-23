@@ -1,17 +1,24 @@
+import makeValidDate from './makeValidDate';
+
+// Returnează '—' dacă data lipsește/invalidă; altfel DD/MM/YYYY
 const formatDate = input => {
-  const date = input instanceof Date ? input : new Date(input);
-  if (!date || Number.isNaN(date.getTime())) return '—';
-
-  let day = date.getDate();
-  let month = date.getMonth() + 1;
-  const year = date.getFullYear();
-
-  if (month < 10 || day < 10) {
-    month = String(month).padStart(2, '0');
-    day = String(day).padStart(2, '0');
+  // Evită 1970: nu parsa falsy/booleeni
+  if (
+    input === null ||
+    input === undefined ||
+    input === '' ||
+    input === false
+  ) {
+    return '—';
   }
 
-  return `${day}/${month}/${year}`;
+  const d = makeValidDate(input);
+  if (!d) return '—';
+
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 };
 
 export default formatDate;

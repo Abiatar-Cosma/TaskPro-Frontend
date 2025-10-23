@@ -1,6 +1,5 @@
-/**
- * Priority mapping
- */
+// src/helpers/cardHelpers.js
+
 export const mapPriorityToBackend = priority => {
   const p = String(priority || '').toLowerCase();
   if (p === 'high') return 'high';
@@ -18,43 +17,51 @@ export const mapPriorityToFrontend = priority => {
   return 'without priority';
 };
 
+// === helper robust pentru date (poți muta în fișier separat dacă vrei)
+export const makeValidDate = value => {
+  if (value == null || value === '' || value === false) return null;
+  if (value instanceof Date)
+    return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'number') {
+    const ms = value < 1e12 ? value * 1000 : value; // secunde -> ms
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(value); // ISO / string
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
 /**
- * Normalize un card venit din API.
- * Asigură existența ambelor chei: deadline (UI) și dueDate (API).
+ * Normalizează un card venit din API.
+ * Pune dueDate / deadline ca ISO string sau null (nu false/0).
  */
 export const normalizeCardFromApi = (apiCard = {}) => {
-  const due =
+  const rawDue =
     apiCard?.dueDate ?? apiCard?.deadline ?? apiCard?.due_date ?? null;
+
+  const d = makeValidDate(rawDue);
 
   return {
     ...apiCard,
-    dueDate: due,
-    deadline: due,
+    dueDate: d ? d.toISOString() : null,
+    deadline: d ? d.toISOString() : null,
     priority: mapPriorityToFrontend(apiCard?.priority),
   };
 };
 
 export const normalizeCardsArray = (arr = []) => arr.map(normalizeCardFromApi);
 
-/** Utils pentru dată */
-export const toDate = val => {
-  if (!val) return null;
-  const d = val instanceof Date ? val : new Date(val);
-  return Number.isNaN(d.getTime()) ? null : d;
-};
+export const toDate = val => makeValidDate(val);
 
 export const formatDDMMYYYY = val => {
-  const d = toDate(val);
-  if (!d) return null;
+  const d = makeValidDate(val);
+  if (!d) return '—';
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 };
 
-/**
- * Validări simple pentru formularul de card
- */
 export const validateCardData = cardInfo => {
   if (!cardInfo.title || !cardInfo.title.trim()) {
     return { isValid: false, error: 'Title is required' };

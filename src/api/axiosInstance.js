@@ -2,12 +2,12 @@ import axios from 'axios';
 import ENDPOINTS from './endpoints';
 
 const baseURL =
-  process.env.REACT_APP_API_URL || 'https://task-pro-backend-5kph.onrender.com';
+  process.env.REACT_APP_API_URL || 'https://taskpro-backend-lybk.onrender.com';
 console.log('[axios] baseURL =', baseURL, 'NODE_ENV=', process.env.NODE_ENV);
 
 const axiosInstance = axios.create({
   baseURL,
-  withCredentials: false, // ⬅️ IMPORTANT: fără cookies cross-site
+  withCredentials: false, // ⬅️ fără cookies cross-site
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -142,7 +142,7 @@ axiosInstance.interceptors.response.use(
         `${baseURL}${ENDPOINTS.auth.refreshToken}`,
         { refreshToken },
         {
-          withCredentials: false, // ⬅️ IMPORTANT: fără cookies
+          withCredentials: false, // ⬅️ fără cookies
           timeout: 10000,
         }
       );

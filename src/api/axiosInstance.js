@@ -3,12 +3,11 @@ import ENDPOINTS from './endpoints';
 
 const baseURL =
   process.env.REACT_APP_API_URL || 'https://task-pro-backend-5kph.onrender.com';
-  console.log('[axios] baseURL =', baseURL, 'NODE_ENV=', process.env.NODE_ENV);
-
+console.log('[axios] baseURL =', baseURL, 'NODE_ENV=', process.env.NODE_ENV);
 
 const axiosInstance = axios.create({
   baseURL,
-  withCredentials: true,
+  withCredentials: false, // ⬅️ IMPORTANT: fără cookies cross-site
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -25,7 +24,6 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
 
-    // Logging detaliat pentru cereri de carduri (debug util)
     if (
       (config.method === 'post' || config.method === 'patch') &&
       config.url &&
@@ -64,7 +62,6 @@ const addSubscriber = cb => refreshSubscribers.push(cb);
    ========================= */
 axiosInstance.interceptors.response.use(
   response => {
-    // Log răspunsuri de la carduri (debug)
     if (response.config.url && response.config.url.includes('/api/cards')) {
       console.log(`Response from ${response.config.url}:`, response.data);
     }
@@ -73,21 +70,17 @@ axiosInstance.interceptors.response.use(
   async error => {
     const originalRequest = error.config;
 
-    // Fără răspuns (rețea/server căzut)
     if (!error.response) {
       console.error('❌ Eroare rețea sau server indisponibil:', error.message);
       return Promise.reject(error);
     }
 
-    // Logging de eroare safe (nu mai dăm JSON.parse necontrolat)
     if (error.response.status >= 400) {
       let safeData = originalRequest?.data;
       if (typeof safeData === 'string') {
         try {
           safeData = JSON.parse(safeData);
-        } catch {
-          // lăsăm stringul brut dacă nu e JSON
-        }
+        } catch {}
       }
 
       console.error(`${error.response.status} Error:`, {
@@ -101,7 +94,6 @@ axiosInstance.interceptors.response.use(
           `Unknown error (${error.response.status})`,
       });
 
-      // 404 pe carduri = situație normală când nu există carduri
       if (
         error.response.status === 404 &&
         originalRequest?.url?.includes('/api/cards')
@@ -123,7 +115,6 @@ axiosInstance.interceptors.response.use(
 
     // ————— 401: încercăm refresh —————
     if (isRefreshing) {
-      // punem requestul în așteptare până se termină refreshul curent
       return new Promise(resolve => {
         addSubscriber(newToken => {
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -151,35 +142,29 @@ axiosInstance.interceptors.response.use(
         `${baseURL}${ENDPOINTS.auth.refreshToken}`,
         { refreshToken },
         {
-          withCredentials: true,
+          withCredentials: false, // ⬅️ IMPORTANT: fără cookies
           timeout: 10000,
         }
       );
 
       const newToken = data.token;
-      const newRefresh = data.refreshToken; // ⬅️ poate fi rotit de backend
+      const newRefresh = data.refreshToken;
 
       if (!newToken) {
         throw new Error('❌ Token nou lipsă în răspuns');
       }
 
-      // ⬇️ Salvăm NOUL access token
       localStorage.setItem('accessToken', newToken);
-
-      // ⬇️ IMPORTANT: dacă vine refreshToken nou, îl salvăm
       if (newRefresh) {
         localStorage.setItem('refreshToken', newRefresh);
       }
 
-      // Actualizăm header-ele
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       axiosInstance.defaults.headers.common.Authorization = `Bearer ${newToken}`;
 
-      // Reluăm request-urile blocate
       onRefreshed(newToken);
       isRefreshing = false;
 
-      // Relansăm requestul original
       return axiosInstance(originalRequest);
     } catch (refreshError) {
       console.error('🔁 Token refresh eșuat:', refreshError.message);
@@ -189,7 +174,6 @@ axiosInstance.interceptors.response.use(
       isRefreshing = false;
       onRefreshFailed(refreshError);
 
-      // Curățăm doar la erori de autorizare
       if (
         refreshError.response &&
         (refreshError.response.status === 401 ||
@@ -199,7 +183,7 @@ axiosInstance.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         axiosInstance.defaults.headers.common.Authorization = '';
-        // opțional: redirect la login aici
+        // opțional: redirect la login
         // window.location.href = '/auth/login';
       }
 

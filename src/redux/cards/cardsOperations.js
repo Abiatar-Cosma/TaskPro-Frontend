@@ -29,7 +29,7 @@ export const addCard = createAsyncThunk(
         title: cardInfo.title.trim(),
         description: cardInfo.description.trim(),
         priority: mapPriorityToBackend(cardInfo.priority),
-        dueDate: extractDueDateISO(cardInfo), // ← API așteaptă dueDate
+        dueDate: extractDueDateISO(cardInfo),
         column: cardInfo.column,
       };
 

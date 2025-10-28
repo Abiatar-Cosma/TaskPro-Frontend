@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Data, HeaderWrap } from './StatsHeader.styled';
-
-const StatsHeader = ({ dataFor, stats }) => {
+const StatsHeader = ({ dataFor, stats, boardsCount }) => {
   const { t } = useTranslation();
+  const scope = stats?.[dataFor] ?? { number: 0 };
 
   return (
     <HeaderWrap>
@@ -11,16 +11,16 @@ const StatsHeader = ({ dataFor, stats }) => {
         <h3>
           {dataFor === 'all'
             ? t('stats.youHave')
-            : `${dataFor.toUpperCase()} ${t('stats.has')}:`}
+            : t('stats.hasScope', { scope: dataFor })}
         </h3>
         <Data>
           {dataFor === 'all' && (
             <li>
-              {Object.keys(stats).length - 1} {t('stats.boards')}
+              {boardsCount ?? 0} {t('stats.boards')}
             </li>
           )}
           <li>
-            {stats[dataFor]?.number} {t('stats.tasks')}
+            {scope.number ?? 0} {t('stats.tasks')}
           </li>
         </Data>
       </div>

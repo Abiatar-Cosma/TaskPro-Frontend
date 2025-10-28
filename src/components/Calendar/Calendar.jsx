@@ -10,7 +10,7 @@ import './styles.css';
 
 const Calendar = React.forwardRef(
   ({ selectedDate, setDate, toggleCalendar }, ref) => {
-    const minDate = new Date();
+    const today = new Date();
     setDefaultLocale('en');
     registerLocale('uk', uk);
 
@@ -22,9 +22,9 @@ const Calendar = React.forwardRef(
             ? 'uk'
             : 'en'
         }
-        selected={selectedDate}
+        selected={selectedDate ?? today} // <-- default azi
         onChange={date => setDate(date)}
-        minDate={minDate}
+        minDate={today}
         calendarStartDay={1}
         dateFormat="EEEE, d"
         onCalendarOpen={() => toggleCalendar(true)}

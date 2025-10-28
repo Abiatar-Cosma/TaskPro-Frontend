@@ -7,7 +7,6 @@ import {
   SelectWrap,
 } from './SelectBoard.styled';
 import { IoIosArrowDown } from 'react-icons/io';
-import { nanoid } from '@reduxjs/toolkit';
 import { useTranslation } from 'react-i18next';
 
 const SelectBoard = ({ onSelect, name, names }) => {
@@ -34,10 +33,13 @@ const SelectBoard = ({ onSelect, name, names }) => {
           </Select>
 
           {isOpen && (
-            <Options>
+            <Options role="listbox" aria-activedescendant={name}>
               {names.map(item => (
                 <Option
-                  key={nanoid()}
+                  key={item}
+                  id={item}
+                  role="option"
+                  aria-selected={item === name}
                   data-value={item}
                   onClick={onSelectChange}
                 >

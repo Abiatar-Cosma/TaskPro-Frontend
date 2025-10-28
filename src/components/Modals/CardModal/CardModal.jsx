@@ -121,7 +121,7 @@ const CardModal = ({ columnId, variant, closeCardModal, activeCard }) => {
               placeholder={t('cards.modals.title')}
               defaultValue={variant === 'add' ? '' : activeCard?.title ?? ''}
               autoComplete="off"
-              maxLength={25}
+              maxLength={50}
               onChange={ev =>
                 validateInputMaxLength(ev, setErrorMsgShown, setErrorClassName)
               }

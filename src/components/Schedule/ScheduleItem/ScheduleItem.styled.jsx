@@ -17,4 +17,5 @@ export const Card = styled.div`
     gap: 12px;
     min-width: 100%;
   }
+    
 `;

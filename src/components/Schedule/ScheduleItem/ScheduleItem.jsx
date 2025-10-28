@@ -1,14 +1,21 @@
+// src/components/Schedule/ScheduleItem/ScheduleItem.jsx
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card } from './ScheduleItem.styled';
 import { useSelector } from 'react-redux';
-import { selectAllCards } from '../../../redux/board/boardSelectors';
-import { compareDates } from 'helpers';
-import { nanoid } from '@reduxjs/toolkit';
+import { Card } from './ScheduleItem.styled';
+import { selectAllCards as selectAllCardsFromCards } from '../../../redux/cards/cardsSelectors';
 import TaskItem from '../TaskItem';
+import compareDates from 'helpers/compareDates';
 
-const ScheduleItem = ({ date }) => {
+const ScheduleItem = ({ date, isToday }) => {
   const { t } = useTranslation();
-  const allCards = useSelector(selectAllCards);
+  const allCards = useSelector(selectAllCardsFromCards);
+
+  const tasksOfDay = useMemo(() => {
+    return (allCards || []).filter(c =>
+      compareDates(c.dueDate ?? c.deadline, date)
+    );
+  }, [allCards, date]);
 
   const daysOfTheWeek = [
     t('schedule.sunday'),
@@ -19,24 +26,21 @@ const ScheduleItem = ({ date }) => {
     t('schedule.friday'),
     t('schedule.saturday'),
   ];
+
   return (
-    <Card>
+    <Card data-today={isToday ? 'true' : 'false'}>
       <p>
         {date.toLocaleDateString()} {daysOfTheWeek[date.getDay()]}
       </p>
       <ul>
-        {allCards
-          .filter(({ deadline }) => compareDates(deadline, date))
-          .map(task => (
-            <li key={nanoid()}>
+        {tasksOfDay.length > 0 ? (
+          tasksOfDay.map(task => (
+            <li key={task._id}>
               <TaskItem task={task} />
             </li>
-          ))}
-        {allCards.filter(({ deadline }) => compareDates(deadline, date))
-          .length === 0 && (
-          <li key={nanoid()} style={{ opacity: '0.5' }}>
-            {t('schedule.noTasks')}
-          </li>
+          ))
+        ) : (
+          <li style={{ opacity: 0.5 }}>{t('schedule.noTasks')}</li>
         )}
       </ul>
     </Card>

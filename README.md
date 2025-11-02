@@ -1,4 +1,38 @@
+
 # TaskPro – Frontend
+
+## 🖼️ Screenshots
+
+### 🏁 Welcome Page
+The landing screen introduces **TaskPro**, encouraging users to register and start organizing their tasks.
+![Welcome Page](src/docs/screens/Screenshot%202025-11-02%20171306.png)
+
+---
+
+### 🔐 Authentication
+Modern registration and login forms with live validation and password strength indicator.
+![Register Page](src/docs/screens/Screenshot%202025-11-02%20171437.png)
+
+---
+
+### 🧩 Kanban Dashboard
+Organize your projects with drag-and-drop boards, columns, and task cards.
+Each card supports priority, deadlines, and edit/delete actions.
+![Kanban Board](src/docs/screens/Screenshot%202025-11-02%20171722.png)
+
+---
+
+### 🗂️ Add & Edit Cards
+Quickly create or edit tasks using modal forms with clean validation and deadline picker.
+![Add/Edit Card](src/docs/screens/Screenshot%202025-11-02%20171754.png)
+
+---
+
+### 🌙 Theme & Sidebar
+Switch between **Light**, **Violet**, or **Dark** themes.  
+Responsive sidebar allows easy navigation between boards and profile settings.
+![Sidebar + Theme](src/docs/screens/Screenshot%202025-11-02%20171827.png)
+
 
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev)
 [![MUI](https://img.shields.io/badge/MUI-5-007FFF.svg)](https://mui.com)
